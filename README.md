@@ -119,6 +119,11 @@ the duplicate final text, so a reply is never printed twice. This is covered by 
   sends text.
 - **Tested on macOS.** The desktop-app discovery and the keychain fallback are macOS-specific; other
   platforms need `DSH_TUI_HARNESS` and `DEEPSEEK_API_KEY`.
+- **The interactive screen was not verified against a real TTY.** It was developed in a
+  non-interactive environment (`stdin.isTTY` is undefined there), so `--print` mode, the protocol
+  client, and the event/rendering logic are covered by live runs and tests, but the raw-mode
+  transcript layout has only been exercised through those tests. If it renders badly in your
+  terminal, that is the part to look at first.
 
 ## Privacy
 
