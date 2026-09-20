@@ -153,19 +153,53 @@ export class ChatSession {
     this.#render.notice(truncate(`✻ ${oneLine(text)}`, 100));
   }
 
-  /** Show a tool invocation as it starts. */
+  /**
+   * Show a tool invocation as it starts.
+   *
+   * `arguments` arrives as a JSON *string* rather than an object, so it is
+   * parsed before summarizing; an unparseable payload is shown verbatim rather
+   * than dropped, because a malformed call is exactly when the user wants to
+   * see what the model actually sent.
+   */
   #onToolCall(data) {
-    const name = data?.name ?? data?.toolName ?? "tool";
-    const detail = summarizeInput(data?.input ?? data?.args, 100);
+    const name = data?.name ?? "tool";
     this.#pendingToolCall = name;
+
+    let detail = "";
+    const raw = data?.arguments;
+    if (typeof raw === "string") {
+      try {
+        detail = summarizeInput(JSON.parse(raw), 100);
+      } catch {
+        detail = truncate(oneLine(raw), 100);
+      }
+    } else if (raw !== undefined) {
+      detail = summarizeInput(raw, 100);
+    }
+
     this.#render.toolCall(name, detail);
   }
 
-  /** Show a tool result, truncated, marking failures. */
+  /**
+   * Show a tool result, truncated, marking failures.
+   *
+   * Results arrive wrapped in an assistant-facing message: the text lives in
+   * `message.content[].content[]`, and `isError` sits on the inner part.
+   */
   #onToolResult(data) {
-    const text = contentText(data?.content) || (typeof data?.output === "string" ? data.output : "");
-    const isError = data?.isError === true || data?.status === "error";
-    this.#render.toolResult(text, { isError });
+    const parts = [];
+    let isError = false;
+
+    for (const outer of data?.message?.content ?? []) {
+      if (outer?.type !== "tool-result") continue;
+      if (outer.isError === true) isError = true;
+      for (const inner of outer.content ?? []) {
+        if (inner?.type === "text" && typeof inner.text === "string") parts.push(inner.text);
+        else if (inner?.type === "image") parts.push("[image]");
+      }
+    }
+
+    this.#render.toolResult(parts.join(""), { isError });
     this.#pendingToolCall = null;
   }
 

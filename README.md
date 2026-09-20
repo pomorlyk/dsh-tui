@@ -89,7 +89,7 @@ The runtime speaks exactly three request methods and pushes notifications:
 | → | `initialize` | select `cwd`, `provider`, `model`, optional `reasoningEffort` / `maxTokens` |
 | → | `session/prompt` | queue one user turn; reusing `sessionId` continues the conversation |
 | → | `shutdown` | dispose agents and exit cleanly |
-| ← | `session.event` | streaming: assistant text, reasoning, tool calls and results |
+| ← | `session.event` | streaming: assistant text, reasoning, tool calls (`arguments` as a JSON string) and results (nested in a message) |
 | ← | `session.status` | `running` → `idle`, which marks the end of a turn |
 
 Assistant output arrives **twice** by design: incrementally through `stream[].text-chunks` while it is
@@ -109,10 +109,10 @@ the duplicate final text, so a reply is never printed twice. This is covered by 
 - **A running turn cannot be cancelled.** The SDK runtime exposes no cancel method — `session/cancel`
   is rejected with `unknown DeepSeek Harness SDK runtime method`. While a turn is running, `Ctrl+C`
   explains this instead of pretending to interrupt, and the process waits for the turn to finish.
-- **Tool call/result rendering is best-effort.** The exact `tool/call` and `tool/result` payload shape
-  was not documented in the bundled packages, so the handler accepts several plausible field names and
-  degrades to showing nothing rather than throwing. Streaming text, reasoning, and turn state are
-  verified against a live runtime; tool rendering is not.
+- **Tool rendering covers observed shapes.** `tool/call` and `tool/result` payloads were captured from
+  a live runtime and are handled explicitly: `arguments` arrives as a JSON **string** (parsed, and shown
+  verbatim when unparseable), and results are nested in `message.content[].content[]` with `isError` on
+  the inner part. Other tools that emit additional part types would render only their text parts.
 - **`--continue` is local only.** The SDK protocol cannot list sessions, so this resumes the last
   session id this client stored in `~/.dsh-tui/state.json` — not an arbitrary prior conversation.
 - **No image or attachment input.** `session/prompt` accepts image content blocks, but this UI only

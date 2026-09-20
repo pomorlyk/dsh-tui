@@ -107,3 +107,71 @@ test("interruption is reported as unavailable rather than silently failing", () 
   // The SDK runtime has no cancel method; the UI must not claim otherwise.
   assert.equal(session.canInterrupt(), false);
 });
+
+// Tool rendering uses payload shapes captured from a live runtime: `arguments`
+// is a JSON string, and results are wrapped in an assistant-facing message.
+
+test("tool/call renders the tool name and summarizes its JSON-string arguments", () => {
+  const output = capture(() => {
+    const renderer = new Renderer({ style: createStyle(false), columns: 120 });
+    const { emit } = makeSession(renderer);
+    emit("session.event", {
+      sessionId: "s1",
+      event: {
+        type: "tool/call",
+        data: {
+          turn: 1,
+          step: 1,
+          callId: "call_1",
+          name: "bash",
+          arguments: '{"command": "echo shape-probe", "description": "Echo a test string"}',
+        },
+      },
+    });
+  });
+
+  assert.match(output, /bash/);
+  assert.match(output, /echo shape-probe/);
+});
+
+test("tool/call shows unparseable arguments instead of dropping them", () => {
+  const output = capture(() => {
+    const renderer = new Renderer({ style: createStyle(false), columns: 120 });
+    const { emit } = makeSession(renderer);
+    emit("session.event", {
+      sessionId: "s1",
+      event: { type: "tool/call", data: { name: "bash", arguments: "{not json" } },
+    });
+  });
+
+  assert.match(output, /\{not json/);
+});
+
+test("tool/result renders nested result text and marks errors", () => {
+  const output = capture(() => {
+    const renderer = new Renderer({ style: createStyle(false), columns: 120 });
+    const { emit } = makeSession(renderer);
+    emit("session.event", {
+      sessionId: "s1",
+      event: {
+        type: "tool/result",
+        data: {
+          message: {
+            role: "user",
+            content: [
+              {
+                type: "tool-result",
+                toolCallId: "call_1",
+                isError: false,
+                content: [{ type: "text", text: "shape-probe\n" }],
+              },
+            ],
+          },
+        },
+      },
+    });
+  });
+
+  assert.match(output, /shape-probe/);
+  assert.match(output, /│/);
+});
