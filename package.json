@@ -1,0 +1,42 @@
+{
+  "name": "dsh-tui",
+  "version": "0.1.0",
+  "description": "Terminal UI for DeepSeek Harness — an interactive multi-turn agent session in your shell, driven over the DSH SDK JSON-RPC protocol.",
+  "type": "module",
+  "license": "MIT",
+  "bin": {
+    "dsh-tui": "src/cli.js"
+  },
+  "main": "src/harness.js",
+  "exports": {
+    ".": "./src/harness.js",
+    "./session": "./src/session.js"
+  },
+  "files": [
+    "src"
+  ],
+  "engines": {
+    "node": ">=20"
+  },
+  "scripts": {
+    "start": "node src/cli.js",
+    "test": "node --test test/"
+  },
+  "keywords": [
+    "deepseek",
+    "dsh",
+    "deepseek-harness",
+    "tui",
+    "cli",
+    "agent",
+    "terminal"
+  ],
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/pomorlyk/dsh-tui.git"
+  },
+  "bugs": {
+    "url": "https://github.com/pomorlyk/dsh-tui/issues"
+  },
+  "homepage": "https://github.com/pomorlyk/dsh-tui#readme"
+}
